@@ -45,20 +45,12 @@ source_files = [
 define_macros = []
 extra_compile_args = []
 extra_link_args = []
+libraries_val = []
 if platform.system().lower() == "windows":
     source_files.append("src/dyn_win32.c")
-    libraries_val = ["python%d%d" % pyver[:2]]
-    extra_compile_args = ["/Fdvc70.pdb", "/Zi", "/GR", "/EHsc"]
-    extra_link_args = [
-        "/DEBUG",
-        "/PDB:_LowLevel.pdb",
-        "/SUBSYSTEM:WINDOWS",
-        "/OPT:REF",
-        "/OPT:ICF",
-    ]
+    extra_compile_args = ["-std=c++14"]
 else:
     source_files.append("src/dyn_unix.c")
-    libraries_val = []
 
 
 class MyBuild(build_py):

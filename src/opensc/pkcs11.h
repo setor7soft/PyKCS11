@@ -95,7 +95,7 @@ extern "C" {
 
 #endif
 
-
+
 #ifdef CRYPTOKI_COMPAT
   /* If we are in compatibility mode, switch all exposed names to the
      PKCS #11 variant.  There are corresponding #undefs below.  */
@@ -185,7 +185,7 @@ extern "C" {
 
 #endif	/* CRYPTOKI_COMPAT */
 
-
+
 
 typedef unsigned long ck_flags_t;
 
@@ -429,6 +429,8 @@ typedef unsigned long ck_attribute_type_t;
 #define CKA_ALWAYS_SENSITIVE		(0x165)
 #define CKA_KEY_GEN_MECHANISM		(0x166)
 #define CKA_MODIFIABLE			(0x170)
+#define CKA_COPYABLE			(0x171)
+#define CKA_DESTROYABLE			(0x172)
 #define CKA_ECDSA_PARAMS		(0x180)
 #define CKA_EC_PARAMS			(0x180)
 #define CKA_EC_POINT			(0x181)
@@ -754,6 +756,11 @@ struct ck_gcm_params {
   unsigned long ulTagBits;
 } ;
 
+struct ck_aes_ctr_params {
+  unsigned long ulCounterBits;
+  unsigned char cb[16];
+} ;
+
 struct ck_ecdh1_derive_params {
   unsigned long kdf;
   unsigned long ulSharedDataLen;
@@ -761,6 +768,13 @@ struct ck_ecdh1_derive_params {
   unsigned long ulPublicDataLen;
   void * pPublicData;
 } ;
+
+struct ck_key_derivation_string_data {
+  unsigned char * pData;
+  unsigned long ulLen;
+} ;
+
+typedef unsigned long ck_extract_params;
 
 #define CKF_HW			(1 << 0)
 #define CKF_ENCRYPT		(1 << 8)
@@ -1254,7 +1268,7 @@ struct ck_c_initialize_args
 #define CKR_VENDOR_DEFINED			((unsigned long) (1 << 31))
 
 
-
+
 /* Compatibility layer.  */
 
 #ifdef CRYPTOKI_COMPAT
@@ -1333,8 +1347,17 @@ typedef struct ck_rsa_pkcs_pss_params *CK_RSA_PKCS_PSS_PARAMS_PTR;
 
 typedef struct ck_gcm_params CK_GCM_PARAMS;
 
+typedef struct ck_aes_ctr_params CK_AES_CTR_PARAMS;
+typedef struct ck_aes_ctr_params *CK_AES_CTR_PARAMS_PTR;
+
 typedef struct ck_ecdh1_derive_params CK_ECDH1_DERIVE_PARAMS;
 typedef struct ck_ecdh1_derive_params *CK_ECDH1_DERIVE_PARAMS_PTR;
+
+typedef struct ck_key_derivation_string_data CK_KEY_DERIVATION_STRING_DATA;
+typedef struct ck_key_derivation_string_data *CK_KEY_DERIVATION_STRING_DATA_PTR;
+
+typedef ck_extract_params CK_EXTRACT_PARAMS;
+typedef ck_extract_params *CK_EXTRACT_PARAMS_PTR;
 
 typedef struct ck_function_list CK_FUNCTION_LIST;
 typedef struct ck_function_list *CK_FUNCTION_LIST_PTR;
@@ -1414,6 +1437,8 @@ typedef struct ck_c_initialize_args *CK_C_INITIALIZE_ARGS_PTR;
 
 #undef ck_rsa_pkcs_pss_params
 
+#undef ck_extract_params
+
 #undef ck_rv_t
 #undef ck_notify_t
 
@@ -1433,7 +1458,7 @@ typedef struct ck_c_initialize_args *CK_C_INITIALIZE_ARGS_PTR;
 
 #endif	/* CRYPTOKI_COMPAT */
 
-
+
 /* System dependencies.  */
 #if defined(_WIN32) || defined(CRYPTOKI_FORCE_WIN32)
 #pragma pack(pop, cryptoki)

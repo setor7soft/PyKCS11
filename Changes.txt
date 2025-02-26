@@ -1,6 +1,22 @@
 History
 =======
 
+1.5.17 - October 2024, Ludovic Rousseau
+  - Add AES in counter mode support (CKM_AES_CTR)
+  - Add simple derivation mechanisms support (CMK_CONCATENATE_*)
+  - Fix reference counting in PyKCS11Lib.load()
+  - remove python 2 support from ckbytelist
+  - minor improvements
+
+1.5.16 - May 2024, Ludovic Rousseau
+  - add support of CKA_MODIFIABLE and CKA_DESTROYABLE attributes
+  - minor improvements
+
+1.5.15 - April 2024, Ludovic Rousseau
+  - fix problems when PYKCS11LIB has incorrect values
+  - fix a problem with swig and "pip install ..."
+  - minor improvements
+
 1.5.14 - February 2024, Ludovic Rousseau
   - fix build using swig 4.2.0
 
@@ -227,4 +243,3 @@ History
 1.0.1 - 2004 Giuseppe Amato (Midori)
    - first version
    - Windows only
-

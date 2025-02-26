@@ -1,5 +1,5 @@
-from __future__ import print_function
 import unittest
+
 from PyKCS11 import PyKCS11
 
 
@@ -27,7 +27,7 @@ class TestUtil(unittest.TestCase):
         mechanism = PyKCS11.Mechanism(PyKCS11.CKM_AES_CBC, "1234567812345678")
         self.assertIsNotNone(mechanism)
 
-        if self.SoftHSMversion < (2,0):
+        if self.SoftHSMversion < (2, 0):
             self.skipTest("generateKey() only supported by SoftHSM >= 2.0")
 
         keyID = (0x01,)
@@ -93,11 +93,22 @@ class TestUtil(unittest.TestCase):
         # 2nd block
         self.assertSequenceEqual(DataOut[16:], DataECBOut2)
 
+        # AES CTR with IV
+        mechanism = PyKCS11.AES_CTR_Mechanism(128, "1234567812345678")
+
+        DataOut = self.session.encrypt(symKey, DataIn, mechanism)
+        # print("DataOut", DataOut)
+
+        DataCheck = self.session.decrypt(symKey, DataOut, mechanism)
+        # print("DataCheck:", DataCheck)
+
+        self.assertSequenceEqual(DataIn, DataCheck)
+
         #
         # test CK_GCM_PARAMS
         #
 
-        if self.SoftHSMversion <= (2,2):
+        if self.SoftHSMversion <= (2, 2):
             self.skipTest("CKM_AES_GCM only supported by SoftHSM > 2.2")
 
         AES_GCM_IV_SIZE = 12

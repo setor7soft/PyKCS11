@@ -101,7 +101,7 @@ typedef struct CK_INFO {
     PyKCS11String GetLibraryVersion()
 	{
 		char szVal[10];
-		sprintf(szVal, "%d.%d", self->libraryVersion.major, self->libraryVersion.minor);
+		snprintf(szVal, sizeof szVal, "%d.%d", self->libraryVersion.major, self->libraryVersion.minor);
 		return PyKCS11String(szVal);
 	}
 };
@@ -129,13 +129,13 @@ typedef struct CK_SLOT_INFO {
     PyKCS11String GetHardwareVersion()
 	{
 		char szVal[10];
-		sprintf(szVal, "%d.%02d", self->hardwareVersion.major, self->hardwareVersion.minor);
+		snprintf(szVal, sizeof szVal, "%d.%02d", self->hardwareVersion.major, self->hardwareVersion.minor);
 		return PyKCS11String(szVal);
 	}
     PyKCS11String GetFirmwareVersion()
 	{
 		char szVal[10];
-		sprintf(szVal, "%d.%02d", self->firmwareVersion.major, self->firmwareVersion.minor);
+		snprintf(szVal, sizeof szVal, "%d.%02d", self->firmwareVersion.major, self->firmwareVersion.minor);
 		return PyKCS11String(szVal);
 	}
 };
@@ -184,7 +184,7 @@ typedef struct CK_TOKEN_INFO {
     PyKCS11String GetFirmwareVersion()
 	{
 		char szVal[10];
-		sprintf(szVal, "%d.%02d", self->firmwareVersion.major, self->firmwareVersion.minor);
+		snprintf(szVal, sizeof szVal, "%d.%02d", self->firmwareVersion.major, self->firmwareVersion.minor);
 		return PyKCS11String(szVal);
 	}
     PyKCS11String GetUtcTime()
@@ -245,21 +245,92 @@ typedef struct CK_DATE{
     }
     else
     {
-      // If the value being set is of CK_RSA_PKCS_OAEP_PARAMS type:
-      int res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_RSA_PKCS_OAEP_PARAMS*), 0);
-      if (!SWIG_IsOK(res2)) {
-          res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_RSA_PKCS_PSS_PARAMS*), 0);
-          if (!SWIG_IsOK(res2)) {
+        // If the value isn't a ckbytelist, then it must be a pointer to a mechanism parameter
+        int res2 = -1;
+        do { // Add mechanism parameters here
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_RSA_PKCS_OAEP_PARAMS*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_RSA_PKCS_PSS_PARAMS*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
             res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_GCM_PARAMS*), 0);
-            if (!SWIG_IsOK(res2)) {
-              res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_ECDH1_DERIVE_PARAMS*), 0);
-              if (!SWIG_IsOK(res2)) {
-                SWIG_exception_fail(SWIG_ArgError(res2), "unsupported CK_MECHANISM Parameter type.");
-              }
-            }
-          }
-      }
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_ECDH1_DERIVE_PARAMS*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_AES_CTR_PARAMS*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_KEY_DERIVATION_STRING_DATA*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_EXTRACT_PARAMS*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+
+            res2 = SWIG_ConvertPtr($input, &arg2, $descriptor(CK_OBJECT_HANDLE*), 0);
+            if( SWIG_IsOK( res2 ) )
+                break;
+        } while(0);
+
+        if (!SWIG_IsOK(res2)) {
+            SWIG_exception_fail(SWIG_ArgError(res2), "unsupported CK_MECHANISM Parameter type.");
+        }
     }
+}
+
+// typemap for CK_BYTE_PTR (unsigned char*) mechanism parameters
+%typemap(in) unsigned char* {
+    vector<unsigned char> *vect;
+    // If the value being set is of ckbytelist type:
+    int res = SWIG_ConvertPtr($input, (void **)&vect, $descriptor(vector<unsigned char> *), 0);
+    if (SWIG_IsOK(res))
+    {
+        // Get the data from the vector
+        // Only set value if not null
+        if (vect)
+            arg2 = vect->data();
+        else
+            arg2 = NULL;
+    }
+    else
+    {
+        // If a mechanism parameter has a 'CK_BYTE_PTR' as a member, it must be represented as a ckbytelist
+        SWIG_exception_fail(SWIG_ArgError(res), "CK_BYTE_PTR members of CK_* mechanism params must be represented as ckbytelist type");
+    }
+}
+
+// typemap for CK_BYTE static arrays
+%typemap(in) unsigned char[ANY](unsigned char out[$1_dim0]) {
+    vector<unsigned char> *vect;
+    // Expect a value of ckbytelist type:
+    int res = SWIG_ConvertPtr($input, (void **)&vect, $descriptor(vector<unsigned char> *), 0);
+    if (SWIG_IsOK(res))
+    {
+        if (vect->size() != $1_dim0)
+        {
+            SWIG_exception_fail(SWIG_ValueError, "Expected a ckbytelist with $1_dim0 elements");
+        }
+
+        for (size_t i = 0; i < $1_dim0; i++)
+        {
+            out[i] = (*vect)[i];
+        }
+    }
+    else
+    {
+        // If a mechanism parameter has a CK_BYTE array as a member, it must be represented as a ckbytelist
+        SWIG_exception_fail(SWIG_ArgError(res), "CK_BYTE arrays of CK_* mechanism params must be represented as ckbytelist type");
+    }
+    $1 = &out[0];
 }
 
 typedef struct CK_MECHANISM {
@@ -297,6 +368,8 @@ typedef struct CK_MECHANISM {
     }
 }
 
+%constant int CK_OBJECT_HANDLE_LENGTH = sizeof(CK_OBJECT_HANDLE);
+
 typedef struct CK_GCM_PARAMS {
     void * pIv;
     unsigned long ulIvLen;
@@ -317,6 +390,24 @@ typedef struct CK_GCM_PARAMS {
 };
 
 %constant int CK_GCM_PARAMS_LENGTH = sizeof(CK_GCM_PARAMS);
+
+typedef struct CK_AES_CTR_PARAMS {
+    unsigned long ulCounterBits;
+    unsigned char cb[16];
+} CK_AES_CTR_PARAMS;
+
+%extend CK_AES_CTR_PARAMS
+{
+    CK_AES_CTR_PARAMS()
+    {
+        CK_AES_CTR_PARAMS *p = new CK_AES_CTR_PARAMS();
+        p->ulCounterBits = 128;
+        memset(p->cb, 0, sizeof(p->cb));
+        return p;
+    }
+};
+
+%constant int CK_AES_CTR_PARAMS_LENGTH = sizeof(CK_AES_CTR_PARAMS);
 
 typedef struct CK_RSA_PKCS_OAEP_PARAMS {
   unsigned long hashAlg;
@@ -386,6 +477,28 @@ typedef struct CK_ECDH1_DERIVE_PARAMS {
 };
 
 %constant int CK_ECDH1_DERIVE_PARAMS_LENGTH = sizeof(CK_ECDH1_DERIVE_PARAMS);
+
+typedef struct CK_KEY_DERIVATION_STRING_DATA {
+    unsigned char * pData;
+    unsigned long ulLen;
+} CK_KEY_DERIVATION_STRING_DATA;
+
+%extend CK_KEY_DERIVATION_STRING_DATA
+{
+    CK_KEY_DERIVATION_STRING_DATA()
+    {
+        CK_KEY_DERIVATION_STRING_DATA *p = new CK_KEY_DERIVATION_STRING_DATA();
+        p->ulLen = 0;
+        p->pData = NULL;
+        return p;
+    }
+};
+
+%constant int CK_KEY_DERIVATION_STRING_DATA_LENGTH = sizeof(CK_KEY_DERIVATION_STRING_DATA);
+
+%pointer_class(unsigned long, CK_EXTRACT_PARAMS);
+
+%constant int CK_EXTRACT_PARAMS_LENGTH = sizeof(CK_EXTRACT_PARAMS);
 
 typedef struct CK_MECHANISM_INFO {
 %immutable;
